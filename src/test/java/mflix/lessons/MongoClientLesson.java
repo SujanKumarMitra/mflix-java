@@ -8,9 +8,17 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -21,6 +29,7 @@ import java.util.concurrent.TimeUnit;
  * @see org.bson.codecs.Codec
  */
 @SpringBootTest
+@RunWith(SpringJUnit4ClassRunner.class)
 public class MongoClientLesson extends AbstractLesson {
 
   private MongoClient mongoClient;
@@ -29,11 +38,17 @@ public class MongoClientLesson extends AbstractLesson {
 
   private MongoCollection<Document> collection;
 
-  private String uri = "<YOUR SRV STRING from the application.properties file>";
+  @Value("${spring.mongodb.uri}")
+  private String uri;
 
   private Document document;
 
   private Bson bson;
+
+  @Value("${spring.mongodb.database}")
+  private String databaseName;
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(MongoClientLesson.class);
 
   @Test
   public void MongoClientInstance() {
@@ -111,7 +126,7 @@ public class MongoClientLesson extends AbstractLesson {
 
     List<String> dbnames = new ArrayList<>();
     for (String name : databaseIterable) {
-      System.out.println(name);
+      LOGGER.info("database name='{}'",name);
       dbnames.add(name);
     }
 
@@ -121,7 +136,7 @@ public class MongoClientLesson extends AbstractLesson {
     you need to go over the contents more than once.
      */
 
-    Assert.assertTrue(dbnames.contains("mflix"));
+    Assert.assertTrue(dbnames.contains(databaseName));
 
     /*
     Then we have our MongoDatabase object. We will use this object to
@@ -129,7 +144,7 @@ public class MongoClientLesson extends AbstractLesson {
     database level read preferences, read concerns and write concerns.
      */
 
-    database = mongoClient.getDatabase("mflix");
+    database = mongoClient.getDatabase(databaseName);
 
     ReadPreference readPreference = database.getReadPreference();
 
@@ -154,7 +169,7 @@ public class MongoClientLesson extends AbstractLesson {
      */
 
     mongoClient = MongoClients.create(uri);
-    database = mongoClient.getDatabase("mflix");
+    database = mongoClient.getDatabase(databaseName);
     collection = database.getCollection("movies");
 
     /*

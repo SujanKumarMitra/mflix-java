@@ -2,6 +2,7 @@ package mflix.api.daos;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.*;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -13,6 +14,9 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Spliterator;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Component
 public class MovieDao extends AbstractMFlixDao {
@@ -117,13 +121,16 @@ public class MovieDao extends AbstractMFlixDao {
      * @return List of matching Document objects.
      */
     public List<Document> getMoviesByCountry(String... country) {
-
-        Bson queryFilter = new Document();
-        Bson projection = new Document();
         //TODO> Ticket: Projection - implement the query and projection required by the unit test
-        List<Document> movies = new ArrayList<>();
 
-        return movies;
+        // the filter query
+        Bson query = Filters.all("countries", country);
+//      Spliterator used for StreamSupport
+        Spliterator<Document> spliterator = moviesCollection.find(query)
+                .projection(new Document().append("title", 1))
+                .spliterator();
+        return StreamSupport.stream(spliterator, false)
+                .collect(Collectors.toCollection(LinkedList::new));
     }
 
     /**
@@ -166,6 +173,10 @@ public class MovieDao extends AbstractMFlixDao {
         Bson sort = null;
         //TODO> Ticket: Subfield Text Search - implement the expected cast
         // filter and sort
+
+        castFilter = Filters.all("cast",cast);
+        sort = Sorts.descending(sortKey);
+
         List<Document> movies = new ArrayList<>();
         moviesCollection
                 .find(castFilter)
@@ -195,7 +206,7 @@ public class MovieDao extends AbstractMFlixDao {
         // TODO > Ticket: Paging - implement the necessary cursor methods to support simple
         // pagination like skip and limit in the code below
         moviesCollection.find(castFilter).sort(sort).iterator()
-        .forEachRemaining(movies::add);
+                .forEachRemaining(movies::add);
         return movies;
     }
 

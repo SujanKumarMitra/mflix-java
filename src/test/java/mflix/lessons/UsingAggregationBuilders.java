@@ -215,7 +215,7 @@ public class UsingAggregationBuilders extends AbstractLesson {
     Running both pipelines, the same set of results.
      */
 
-    Assert.assertEquals(groupByResults, sortByCountResults);
+    Assert.assertTrue(groupByResults.containsAll(sortByCountResults));
   }
 
   @Test

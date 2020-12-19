@@ -10,9 +10,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.util.*;
 import java.util.stream.StreamSupport;
 
+import static com.mongodb.client.model.Accumulators.first;
 import static com.mongodb.client.model.Accumulators.push;
 import static com.mongodb.client.model.Aggregates.*;
 import static com.mongodb.client.model.Filters.*;
@@ -74,14 +76,20 @@ public class MovieDao extends AbstractMFlixDao {
 
         Bson unwindStage = unwind("$comments");
         Bson sortStage = sort(descending("comments.date"));
-        Bson groupStage = group("$_id", push("comments", "$comments"));
+        Bson groupStage = group("$_id",
+                push("comments", "$comments"),
+                first("root", "$$ROOT"));
+        Bson setStage = eq("$set", eq("root.comments", "$comments"));
+        Bson replaceRootStage = replaceRoot("$root");
 
         List<Bson> aggregationPipeline = Arrays.asList(
                 movieIdFilterStage,
                 lookupStage,
                 unwindStage,
                 sortStage,
-                groupStage);
+                groupStage,
+                setStage,
+                replaceRootStage);
 
         // TODO> Ticket: Get Comments - implement the lookup stage that allows the comments to
         // retrieved with Movies.

@@ -5,7 +5,7 @@ import com.mongodb.MongoException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
-import com.mongodb.client.model.Filters;
+import com.mongodb.client.result.DeleteResult;
 import mflix.api.models.Comment;
 import mflix.api.models.Critic;
 import org.bson.Document;
@@ -149,9 +149,18 @@ public class CommentDao extends AbstractMFlixDao {
         // TODO> Ticket Delete Comments - Implement the method that enables the deletion of a user
         // comment
         // TIP: make sure to match only users that own the given commentId
+        ObjectId commentObjectId = new ObjectId(commentId);
+        DeleteResult deleteResult = commentCollection.deleteOne(
+                and(
+                    eq("_id", commentObjectId),
+                    eq("email", email)
+                )
+        );
+        return deleteResult.getDeletedCount() == 1 ? true : false;
+
         // TODO> Ticket Handling Errors - Implement a try catch block to
         // handle a potential write exception when given a wrong commentId.
-        return false;
+//        return false;
     }
 
     /**

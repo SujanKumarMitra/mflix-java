@@ -67,25 +67,22 @@ public class MovieDao extends AbstractMFlixDao {
             return null;
         }
 
-        List<Bson> aggregationPipeline = asList(match(eq("_id", new ObjectId(movieId))),
-                new Document("$project",
-                        new Document("title", 1L)),
-                new Document("$lookup",
-                        new Document("from", "comments")
-                                .append("let",
-                                        new Document("movie_id", "$_id"))
-                                .append("pipeline", asList(new Document("$match",
-                                        new Document("$expr",
-                                                new Document("$eq", asList("$movie_id", "$$movie_id"))))))
-                                .append("as", "comments")),
-                new Document("$unwind",
-                        new Document("path", "$comments")),
-                new Document("$sort",
-                        new Document("comments.date", -1L)),
-                new Document("$group",
-                        new Document("_id", "$_id")
-                                .append("comments",
-                                        new Document("$push", "$comments"))));
+        Bson movieIdFilterStage = match(eq("_id", new ObjectId(movieId)));
+
+        List<Variable<String>> lookupVariables = asList(new Variable<>("movie_id", "$_id"));
+        List<Bson> lookupPipeline = asList(match(expr(new Document("$eq",asList("$movie_id","$$movie_id")))));
+        Bson lookupStage = lookup("comments", lookupVariables, lookupPipeline, "comments");
+
+        Bson unwindStage = unwind("$comments");
+        Bson sortStage = sort(descending("comments.date"));
+        Bson groupStage = group("$_id", push("comments", "$comments"));
+
+        List<Bson> aggregationPipeline = Arrays.asList(
+                movieIdFilterStage,
+                lookupStage,
+                unwindStage,
+                sortStage,
+                groupStage);
 
         // TODO> Ticket: Get Comments - implement the lookup stage that allows the comments to
         // retrieved with Movies.

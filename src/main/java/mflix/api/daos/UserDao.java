@@ -48,7 +48,9 @@ public class UserDao extends AbstractMFlixDao {
                         MongoClientSettings.getDefaultCodecRegistry(),
                         fromProviders(PojoCodecProvider.builder().automatic(true).build()));
 
-        usersCollection = db.getCollection("users", User.class).withCodecRegistry(pojoCodecRegistry);
+        usersCollection = db.getCollection("users", User.class)
+                            .withCodecRegistry(pojoCodecRegistry)
+                            .withWriteConcern(WriteConcern.MAJORITY);
         log = LoggerFactory.getLogger(this.getClass());
         //TODO> Ticket: User Management - implement the necessary changes so that the sessions
         // collection returns a Session objects instead of Document objects.

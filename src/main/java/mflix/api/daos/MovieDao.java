@@ -15,8 +15,7 @@ import java.util.stream.StreamSupport;
 
 import static com.mongodb.client.model.Accumulators.push;
 import static com.mongodb.client.model.Aggregates.*;
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Filters.expr;
+import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Sorts.descending;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toCollection;
@@ -70,7 +69,7 @@ public class MovieDao extends AbstractMFlixDao {
         Bson movieIdFilterStage = match(eq("_id", new ObjectId(movieId)));
 
         List<Variable<String>> lookupVariables = asList(new Variable<>("movie_id", "$_id"));
-        List<Bson> lookupPipeline = asList(match(expr(new Document("$eq",asList("$movie_id","$$movie_id")))));
+        List<Bson> lookupPipeline = asList(match(expr(new Document("$eq", asList("$movie_id", "$$movie_id")))));
         Bson lookupStage = lookup("comments", lookupVariables, lookupPipeline, "comments");
 
         Bson unwindStage = unwind("$comments");

@@ -5,6 +5,10 @@ import com.mongodb.MongoException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+import com.mongodb.client.model.Accumulators;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;
 import com.mongodb.client.result.DeleteResult;
 import mflix.api.models.Comment;
 import mflix.api.models.Critic;
@@ -19,14 +23,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import javax.print.Doc;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import static com.mongodb.client.model.Accumulators.sum;
+import static com.mongodb.client.model.Aggregates.*;
+import static com.mongodb.client.model.Aggregates.group;
+import static com.mongodb.client.model.Aggregates.sort;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Sorts.descending;
 import static com.mongodb.client.model.Updates.combine;
 import static com.mongodb.client.model.Updates.set;
+import static java.util.stream.Collectors.toList;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
@@ -152,8 +163,8 @@ public class CommentDao extends AbstractMFlixDao {
         ObjectId commentObjectId = new ObjectId(commentId);
         DeleteResult deleteResult = commentCollection.deleteOne(
                 and(
-                    eq("_id", commentObjectId),
-                    eq("email", email)
+                        eq("_id", commentObjectId),
+                        eq("email", email)
                 )
         );
         return deleteResult.getDeletedCount() == 1 ? true : false;
@@ -171,13 +182,32 @@ public class CommentDao extends AbstractMFlixDao {
      * @return List {@link Critic} objects.
      */
     public List<Critic> mostActiveCommenters() {
-        List<Critic> mostActive = new ArrayList<>();
+//        List<Critic> mostActive = new ArrayList<>();
         // // TODO> Ticket: User Report - execute a command that returns the
         // // list of 20 users, group by number of comments. Don't forget,
         // // this report is expected to be produced with an high durability
         // // guarantee for the returned documents. Once a commenter is in the
         // // top 20 of users, they become a Critic, so mostActive is composed of
         // // Critic objects.
-        return mostActive;
+
+        Bson groupStage = group("$email", sum("commentCount", 1));
+        Bson sortStage = sort(descending("commentCount"));
+        Bson limitStage = limit(20);
+
+        List<Bson> aggregationPipeline = Arrays.asList(
+                groupStage,
+                sortStage,
+                limitStage
+        );
+
+        Spliterator<Document> spliterator = commentCollection.aggregate(aggregationPipeline, Document.class)
+                .spliterator();
+        return StreamSupport.stream(spliterator, false)
+                .map(this::buildCritic)
+                .collect(toList());
+    }
+
+    private Critic buildCritic(Document document) {
+        return new Critic(document.getString("_id"), document.getInteger("commentCount"));
     }
 }

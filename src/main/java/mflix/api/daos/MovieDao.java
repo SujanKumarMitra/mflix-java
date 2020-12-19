@@ -18,6 +18,8 @@ import java.util.Spliterator;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import static java.util.stream.Collectors.toCollection;
+
 @Component
 public class MovieDao extends AbstractMFlixDao {
 
@@ -130,7 +132,7 @@ public class MovieDao extends AbstractMFlixDao {
                 .projection(new Document().append("title", 1))
                 .spliterator();
         return StreamSupport.stream(spliterator, false)
-                .collect(Collectors.toCollection(LinkedList::new));
+                .collect(toCollection(LinkedList::new));
     }
 
     /**
@@ -202,12 +204,15 @@ public class MovieDao extends AbstractMFlixDao {
         Bson castFilter = Filters.in("genres", genres);
         // sort key
         Bson sort = Sorts.descending(sortKey);
-        List<Document> movies = new ArrayList<>();
         // TODO > Ticket: Paging - implement the necessary cursor methods to support simple
         // pagination like skip and limit in the code below
-        moviesCollection.find(castFilter).sort(sort).iterator()
-                .forEachRemaining(movies::add);
-        return movies;
+        Spliterator<Document> spliterator = moviesCollection.find(castFilter)
+                .sort(sort)
+                .skip(skip)
+                .limit(limit)
+                .spliterator();
+        return StreamSupport.stream(spliterator,false)
+                            .collect(toCollection(LinkedList::new));
     }
 
     private ArrayList<Integer> runtimeBoundaries() {

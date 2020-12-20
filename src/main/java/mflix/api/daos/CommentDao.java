@@ -2,6 +2,7 @@ package mflix.api.daos;
 
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoException;
+import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -92,7 +93,7 @@ public class CommentDao extends AbstractMFlixDao {
             throw new IncorrectDaoOperation("id can't be null");
         try {
             commentCollection.insertOne(comment);
-        } catch (MongoException e) {
+        } catch (MongoWriteException e) {
             throw new IncorrectDaoOperation(e.getMessage());
         }
         return comment;
